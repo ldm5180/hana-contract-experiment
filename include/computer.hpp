@@ -1,5 +1,5 @@
-#ifndef HANAEXPR_HPP
-#define HANAEXPR_HPP
+#ifndef COMPUTER_HPP
+#define COMPUTER_HPP
 
 struct Computer {
   virtual ~Computer() {}
@@ -19,4 +19,11 @@ struct MultiplicationComputer {
   unsigned compute(unsigned a, unsigned b) const;
 };
 
-#endif // HANAEXPR_HPP
+struct AccumulateFirstArg {
+  unsigned compute(unsigned a, unsigned b);
+
+private:
+  unsigned accum_ = 0;
+};
+
+#endif // COMPUTER_HPP
