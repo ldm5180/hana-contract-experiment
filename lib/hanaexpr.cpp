@@ -7,3 +7,7 @@ unsigned AdditionComputer::compute(unsigned a, unsigned b) const {
 unsigned SubtractionComputer::compute(unsigned a, unsigned b) const {
   return a - b;
 }
+
+unsigned MultiplicationComputer::compute(unsigned a, unsigned b) const {
+  return a * b;
+}

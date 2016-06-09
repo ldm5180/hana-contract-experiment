@@ -14,4 +14,9 @@ struct SubtractionComputer : public Computer {
   virtual unsigned compute(unsigned a, unsigned b) const final;
 };
 
+// Note, this does not inherit from Computer, so it cannot be cast to Computer.
+struct MultiplicationComputer {
+  unsigned compute(unsigned a, unsigned b) const;
+};
+
 #endif // HANAEXPR_HPP
