@@ -30,14 +30,14 @@ template <typename T> struct Engine {
 
   template <typename U = T>
   void benchmark(
-      unsigned loops, unsigned a, unsigned b,
+      unsigned loops, std::vector<unsigned> a, std::vector<unsigned> b,
       typename std::enable_if<!boost::hana::Foldable<U>::value>::type * = 0) {
     unsigned val = 0;
     std::clock_t c_start = std::clock();
     auto t_start = std::chrono::high_resolution_clock::now();
     for (unsigned i = 0; i < loops; ++i) {
       {
-        auto results = run(a, b);
+        auto results = run(a[i], b[i]);
         val = std::accumulate(results.begin(), results.end(), val);
       }
     }
@@ -53,14 +53,14 @@ template <typename T> struct Engine {
 
   template <typename U = T>
   void benchmark(
-      unsigned loops, unsigned a, unsigned b,
+      unsigned loops, std::vector<unsigned> a, std::vector<unsigned> b,
       typename std::enable_if<boost::hana::Foldable<U>::value>::type * = 0) {
     unsigned val = 0;
     std::clock_t c_start = std::clock();
     auto t_start = std::chrono::high_resolution_clock::now();
     for (unsigned i = 0; i < loops; ++i) {
       {
-        auto results = run(a, b);
+        auto results = run(a[i], b[i]);
         val = boost::hana::fold_left(
             results, val, [](unsigned state, auto v) { return state + v; });
       }

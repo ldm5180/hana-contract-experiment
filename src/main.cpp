@@ -16,9 +16,10 @@ constexpr unsigned numloops = 100000000;
 
 int main() {
   std::srand(std::time(0)); // use current time as seed for random generator
-  // Add 1 to avoid the boring case where there is a 0.
-  unsigned randA = std::rand() % 10 + 1;
-  unsigned randB = std::rand() % 10 + 1;
+  std::vector<unsigned> ar(numloops);
+  std::vector<unsigned> br(numloops);
+  std::generate(ar.begin(), ar.end(), std::rand);
+  std::generate(br.begin(), br.end(), std::rand);
 
   // Standard way of doing it. Cannot use MultiplicationComputer because it is
   // not derived from Computer.
@@ -31,7 +32,7 @@ int main() {
     computers.emplace_back(std::make_shared<AccumulateFirstArgComputer>());
     Engine<decltype(computers)> e;
     e.computers(std::move(computers));
-    e.benchmark(numloops, randA, randB);
+    e.benchmark(numloops, ar, br);
   }
 
   // Using Hana with the inherited types.
@@ -40,11 +41,11 @@ int main() {
     auto computers = hana::make_tuple(AdditionComputer{}, SubtractionComputer{},
                                       MultiplicationComputer{},
                                       AccumulateFirstArgComputer{});
-
     BOOST_HANA_CONSTANT_CHECK(hana::length(computers) == hana::size_c<4>);
+
     Engine<decltype(computers)> e;
     e.computers(std::move(computers));
-    e.benchmark(numloops, randA, randB);
+    e.benchmark(numloops, ar, br);
   }
 
   // Using Hana with the unrelated types.
@@ -52,11 +53,11 @@ int main() {
   {
     auto computers = hana::make_tuple(Addition{}, Subtraction{},
                                       Multiplication{}, AccumulateFirstArg{});
-
     BOOST_HANA_CONSTANT_CHECK(hana::length(computers) == hana::size_c<4>);
+
     Engine<decltype(computers)> e;
     e.computers(std::move(computers));
-    e.benchmark(numloops, randA, randB);
+    e.benchmark(numloops, ar, br);
   }
 
   return 0;
