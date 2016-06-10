@@ -29,6 +29,7 @@ int main() {
     computers.emplace_back(std::make_shared<SubtractionComputer>());
     computers.emplace_back(std::make_shared<MultiplicationComputer>());
     computers.emplace_back(std::make_shared<AccumulateFirstArgComputer>());
+    computers.emplace_back(std::make_shared<StringConcatComputer>());
     Engine<decltype(computers)> e;
     e.computers(std::move(computers));
     e.benchmark(numloops, randA, randB);
@@ -50,10 +51,11 @@ int main() {
   // Using Hana with the unrelated types.
   std::cout << "Hana: ";
   {
-    auto computers = hana::make_tuple(Addition{}, Subtraction{},
-                                      Multiplication{}, AccumulateFirstArg{});
+    auto computers =
+        hana::make_tuple(Addition{}, Subtraction{}, Multiplication{},
+                         AccumulateFirstArg{}, StringConcatComputer{});
 
-    BOOST_HANA_CONSTANT_CHECK(hana::length(computers) == hana::size_c<4>);
+    BOOST_HANA_CONSTANT_CHECK(hana::length(computers) == hana::size_c<5>);
     Engine<decltype(computers)> e;
     e.computers(std::move(computers));
     e.benchmark(numloops, randA, randB);

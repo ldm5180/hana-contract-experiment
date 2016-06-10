@@ -1,6 +1,8 @@
 #ifndef COMPUTER_HPP
 #define COMPUTER_HPP
 
+#include <boost/lexical_cast.hpp>
+
 struct Computer {
   virtual ~Computer() {}
   virtual unsigned compute(unsigned a, unsigned b) = 0;
@@ -50,6 +52,13 @@ struct AccumulateFirstArg {
 
 private:
   unsigned accum_ = 0;
+};
+
+struct StringConcatComputer : public Computer {
+  unsigned compute(unsigned a, unsigned b) {
+    return boost::lexical_cast<unsigned>(boost::lexical_cast<std::string>(a) +
+                                         boost::lexical_cast<std::string>(b));
+  }
 };
 
 #endif // COMPUTER_HPP
