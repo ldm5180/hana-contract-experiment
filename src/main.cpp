@@ -13,6 +13,10 @@ namespace hana = boost::hana;
 using Computers = std::vector<std::shared_ptr<Computer>>;
 
 int main() {
+  std::srand(std::time(0)); // use current time as seed for random generator
+  unsigned randA = std::rand() % 10;
+  unsigned randB = std::rand() % 10;
+
   // Standard way of doing it. Cannot use MultiplicationComputer because it is
   // not derived from Computer.
   Computers computers;
@@ -45,7 +49,7 @@ int main() {
       auto t_start = std::chrono::high_resolution_clock::now();
       for (unsigned i = 0; i < 100000000; ++i) {
         {
-          auto results = e.run(3, 2);
+          auto results = e.run(randA, randB);
           val = std::accumulate(results.begin(), results.end(), val);
         }
     }
@@ -67,8 +71,9 @@ int main() {
     auto t_start = std::chrono::high_resolution_clock::now();
     for (unsigned i = 0; i < 100000000; ++i) {
       {
-        auto results = eAll.run(3, 2);
-        val = std::accumulate(results.begin(), results.end(), val);
+        auto results = eAll.run(randA, randB);
+        val = hana::fold_left(results, val,
+                              [](unsigned state, auto v) { return state + v; });
       }
     }
     std::clock_t c_end = std::clock();
@@ -89,8 +94,9 @@ int main() {
     auto t_start = std::chrono::high_resolution_clock::now();
     for (unsigned i = 0; i < 100000000; ++i) {
       {
-        auto results = eRaw.run(3, 2);
-        val = std::accumulate(results.begin(), results.end(), val);
+        auto results = eRaw.run(randA, randB);
+        val = hana::fold_left(results, val,
+                              [](unsigned state, auto v) { return state + v; });
       }
     }
     std::clock_t c_end = std::clock();
