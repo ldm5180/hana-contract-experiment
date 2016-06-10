@@ -1,3 +1,6 @@
+#include <chrono>
+#include <ctime>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -12,45 +15,93 @@ using Computers = std::vector<std::shared_ptr<Computer>>;
 int main() {
   // Standard way of doing it. Cannot use MultiplicationComputer because it is
   // not derived from Computer.
-  std::cout << "Inheritance:\n";
   Computers computers;
   computers.emplace_back(std::make_shared<AdditionComputer>());
   computers.emplace_back(std::make_shared<SubtractionComputer>());
-  // computers.emplace_back(std::make_shared<MultiplicationComputer>());
-
-  {
+  computers.emplace_back(std::make_shared<MultiplicationComputer>());
+  computers.emplace_back(std::make_shared<AccumulateFirstArgComputer>());
     Engine<decltype(computers)> e;
     e.computers(std::move(computers));
-    auto results = e.run(3, 2);
-    for (const auto &x : results) {
-      std::cout << x << std::endl;
+
+    auto allComputers = hana::make_tuple(
+        AdditionComputer{}, SubtractionComputer{}, MultiplicationComputer{},
+        AccumulateFirstArgComputer{});
+
+    BOOST_HANA_CONSTANT_CHECK(hana::length(allComputers) == hana::size_c<4>);
+    Engine<decltype(allComputers)> eAll;
+    eAll.computers(std::move(allComputers));
+
+    auto rawComputers = hana::make_tuple(
+        Addition{}, Subtraction{}, Multiplication{}, AccumulateFirstArg{});
+
+    BOOST_HANA_CONSTANT_CHECK(hana::length(rawComputers) == hana::size_c<4>);
+    Engine<decltype(rawComputers)> eRaw;
+    eRaw.computers(std::move(rawComputers));
+
+    {
+      std::cout << "Inheritance: ";
+      unsigned val = 0;
+      std::clock_t c_start = std::clock();
+      auto t_start = std::chrono::high_resolution_clock::now();
+      for (unsigned i = 0; i < 100000000; ++i) {
+        {
+          auto results = e.run(3, 2);
+          val = std::accumulate(results.begin(), results.end(), val);
+        }
     }
+    std::clock_t c_end = std::clock();
+    auto t_end = std::chrono::high_resolution_clock::now();
+    std::cout << std::fixed << std::setprecision(2) << "CPU time used: "
+              << 1000.0 * (c_end - c_start) / CLOCKS_PER_SEC << " ms\n"
+              << "Wall clock time passed: "
+              << std::chrono::duration<double, std::milli>(t_end - t_start)
+                     .count() << " ms\n";
+    std::cout << val << "\n\n";
   }
 
-  // Using Hana to optionally add MultiplicationComputer if it exists.
-  std::cout << "\nHana:\n";
-  auto allComputers =
-      hana::make_tuple(AdditionComputer{}, SubtractionComputer{},
-                       MultiplicationComputer{}, AccumulateFirstArg{});
-
-  BOOST_HANA_CONSTANT_CHECK(hana::length(allComputers) == hana::size_c<4>);
   {
-    Engine<decltype(allComputers)> e;
-    e.computers(std::move(allComputers));
-    auto results = e.run(3, 2);
-    for (const auto &x : results) {
-      std::cout << x << std::endl;
+    // Using Hana with the inherited types.
+    std::cout << "Hana (w/ inheritance): ";
+    unsigned val = 0;
+    std::clock_t c_start = std::clock();
+    auto t_start = std::chrono::high_resolution_clock::now();
+    for (unsigned i = 0; i < 100000000; ++i) {
+      {
+        auto results = eAll.run(3, 2);
+        val = std::accumulate(results.begin(), results.end(), val);
+      }
     }
+    std::clock_t c_end = std::clock();
+    auto t_end = std::chrono::high_resolution_clock::now();
+    std::cout << std::fixed << std::setprecision(2) << "CPU time used: "
+              << 1000.0 * (c_end - c_start) / CLOCKS_PER_SEC << " ms\n"
+              << "Wall clock time passed: "
+              << std::chrono::duration<double, std::milli>(t_end - t_start)
+                     .count() << " ms\n";
+    std::cout << val << "\n\n";
   }
 
-  // You can even filter the computers at compile time. Put something which
-  // doesn't have the compute() function into all computers, such as
-  // 'std::vector<int>{}'. Then you can filter it out using something like this.
-  auto validComputers = hana::filter(allComputers, [](auto &&computer) {
-    auto hasCompute =
-        hana::is_valid([](auto &&obj) -> decltype(obj.compute(1, 1)) {});
-    return hasCompute(computer);
-  });
+  {
+    // Using Hana with the raw types.
+    std::cout << "Hana: ";
+    unsigned val = 0;
+    std::clock_t c_start = std::clock();
+    auto t_start = std::chrono::high_resolution_clock::now();
+    for (unsigned i = 0; i < 100000000; ++i) {
+      {
+        auto results = eRaw.run(3, 2);
+        val = std::accumulate(results.begin(), results.end(), val);
+      }
+    }
+    std::clock_t c_end = std::clock();
+    auto t_end = std::chrono::high_resolution_clock::now();
+    std::cout << std::fixed << std::setprecision(2) << "CPU time used: "
+              << 1000.0 * (c_end - c_start) / CLOCKS_PER_SEC << " ms\n"
+              << "Wall clock time passed: "
+              << std::chrono::duration<double, std::milli>(t_end - t_start)
+                     .count() << " ms\n";
+    std::cout << val << "\n\n";
+  }
 
   return 0;
 }
