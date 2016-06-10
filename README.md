@@ -6,3 +6,14 @@ Benefits:
 - No virtual function call dispatch.
 - No inheritance.
 
+# Building
+
+Use the Vagrantfile to build an environment for building. Otherwise install the dependencies: clang, cmake, boost.
+
+```bash
+cd hana-contract-experiment
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+./bin/hanaexpr-test
+```
