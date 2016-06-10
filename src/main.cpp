@@ -1,3 +1,6 @@
+#include <chrono>
+#include <ctime>
+#include <iomanip>
 #include <iostream>
 #include <memory>
 #include <vector>
@@ -9,48 +12,52 @@ namespace hana = boost::hana;
 
 using Computers = std::vector<std::shared_ptr<Computer>>;
 
+constexpr unsigned numloops = 100000000;
+
 int main() {
+  std::srand(std::time(0)); // use current time as seed for random generator
+  // Add 1 to avoid the boring case where there is a 0.
+  unsigned randA = std::rand() % 10 + 1;
+  unsigned randB = std::rand() % 10 + 1;
+
   // Standard way of doing it. Cannot use MultiplicationComputer because it is
   // not derived from Computer.
-  std::cout << "Inheritance:\n";
-  Computers computers;
-  computers.emplace_back(std::make_shared<AdditionComputer>());
-  computers.emplace_back(std::make_shared<SubtractionComputer>());
-  // computers.emplace_back(std::make_shared<MultiplicationComputer>());
-
+  std::cout << "Inheritance: ";
   {
+    Computers computers;
+    computers.emplace_back(std::make_shared<AdditionComputer>());
+    computers.emplace_back(std::make_shared<SubtractionComputer>());
+    computers.emplace_back(std::make_shared<MultiplicationComputer>());
+    computers.emplace_back(std::make_shared<AccumulateFirstArgComputer>());
     Engine<decltype(computers)> e;
     e.computers(std::move(computers));
-    auto results = e.run(3, 2);
-    for (const auto &x : results) {
-      std::cout << x << std::endl;
-    }
+    e.benchmark(numloops, randA, randB);
   }
 
-  // Using Hana to optionally add MultiplicationComputer if it exists.
-  std::cout << "\nHana:\n";
-  auto allComputers =
-      hana::make_tuple(AdditionComputer{}, SubtractionComputer{},
-                       MultiplicationComputer{}, AccumulateFirstArg{});
-
-  BOOST_HANA_CONSTANT_CHECK(hana::length(allComputers) == hana::size_c<4>);
+  // Using Hana with the inherited types.
+  std::cout << "Hana (w/ inheritance): ";
   {
-    Engine<decltype(allComputers)> e;
-    e.computers(std::move(allComputers));
-    auto results = e.run(3, 2);
-    for (const auto &x : results) {
-      std::cout << x << std::endl;
-    }
+    auto computers = hana::make_tuple(AdditionComputer{}, SubtractionComputer{},
+                                      MultiplicationComputer{},
+                                      AccumulateFirstArgComputer{});
+
+    BOOST_HANA_CONSTANT_CHECK(hana::length(computers) == hana::size_c<4>);
+    Engine<decltype(computers)> e;
+    e.computers(std::move(computers));
+    e.benchmark(numloops, randA, randB);
   }
 
-  // You can even filter the computers at compile time. Put something which
-  // doesn't have the compute() function into all computers, such as
-  // 'std::vector<int>{}'. Then you can filter it out using something like this.
-  auto validComputers = hana::filter(allComputers, [](auto &&computer) {
-    auto hasCompute =
-        hana::is_valid([](auto &&obj) -> decltype(obj.compute(1, 1)) {});
-    return hasCompute(computer);
-  });
+  // Using Hana with the unrelated types.
+  std::cout << "Hana: ";
+  {
+    auto computers = hana::make_tuple(Addition{}, Subtraction{},
+                                      Multiplication{}, AccumulateFirstArg{});
+
+    BOOST_HANA_CONSTANT_CHECK(hana::length(computers) == hana::size_c<4>);
+    Engine<decltype(computers)> e;
+    e.computers(std::move(computers));
+    e.benchmark(numloops, randA, randB);
+  }
 
   return 0;
 }

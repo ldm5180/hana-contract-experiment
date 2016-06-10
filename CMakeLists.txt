@@ -79,5 +79,5 @@ include_directories("include")
 include_directories("hana/include")
 
 # Add the directories containing more CMakeLists.
-add_subdirectory(lib)
+# add_subdirectory(lib)
 add_subdirectory(src)
