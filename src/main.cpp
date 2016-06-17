@@ -21,16 +21,14 @@ int main() {
   std::generate(ar.begin(), ar.end(), std::rand);
   std::generate(br.begin(), br.end(), std::rand);
 
-  auto interfaceEnforcer = [](auto &x, const auto &a, const auto &b, ...) {
-    return x.compute(a, b);
-  };
+  auto interfaceEnforcer = [](auto &computer, const auto &a, const auto &b,
+                              ...) { return computer.compute(a, b); };
 
   // Standard way of doing it. Cannot use MultiplicationComputer because it is
   // not derived from Computer.
   // Note, the special caller is needed because x is a shared_ptr.
-  auto ptrInterfaceEnforcer = [](auto &x, const auto &a, const auto &b, ...) {
-    return x->compute(a, b);
-  };
+  auto ptrInterfaceEnforcer = [](auto &computer, const auto &a, const auto &b,
+                                 ...) { return computer->compute(a, b); };
   std::cout << "Inheritance: ";
   {
     Computers computers;
@@ -38,10 +36,9 @@ int main() {
     computers.emplace_back(std::make_shared<SubtractionComputer>());
     computers.emplace_back(std::make_shared<MultiplicationComputer>());
     computers.emplace_back(std::make_shared<AccumulateFirstArgComputer>());
-    Engine<decltype(computers), decltype(ptrInterfaceEnforcer)> e(
-        ptrInterfaceEnforcer);
-    e.computers(std::move(computers));
-    e.benchmark(numloops, ar, br);
+
+    auto e = NewEngine(std::move(computers));
+    e.benchmark(ptrInterfaceEnforcer, numloops, ar, br);
   }
 
   // Using Hana with the inherited types.
@@ -52,10 +49,8 @@ int main() {
                                       AccumulateFirstArgComputer{});
     BOOST_HANA_CONSTANT_CHECK(hana::length(computers) == hana::size_c<4>);
 
-    Engine<decltype(computers), decltype(interfaceEnforcer)> e(
-        interfaceEnforcer);
-    e.computers(std::move(computers));
-    e.benchmark(numloops, ar, br);
+    auto e = NewEngine(std::move(computers));
+    e.benchmark(interfaceEnforcer, numloops, ar, br);
   }
 
   // Using Hana with the unrelated types.
@@ -65,19 +60,17 @@ int main() {
                                       Multiplication{}, AccumulateFirstArg{});
     BOOST_HANA_CONSTANT_CHECK(hana::length(computers) == hana::size_c<4>);
 
-    Engine<decltype(computers), decltype(interfaceEnforcer)> e(
-        interfaceEnforcer);
-    e.computers(std::move(computers));
-    e.benchmark(numloops, ar, br);
+    auto e = NewEngine(std::move(computers));
+    e.benchmark(interfaceEnforcer, numloops, ar, br);
 
     // Show off the ability to use Engine::run() with variable number of args.
     // The accumulator will be different between the 2 runs (4th number) because
     // it is stateful.
-    auto args2 = e.run(ar[1], br[1]);
+    auto args2 = e.run(interfaceEnforcer, ar[1], br[1]);
     boost::hana::for_each(args2, [](const auto &x) { std::cout << x << " "; });
     std::cout << std::endl;
 
-    auto args3 = e.run(ar[1], br[1], ar[2]);
+    auto args3 = e.run(interfaceEnforcer, ar[1], br[1], ar[2]);
     boost::hana::for_each(args3, [](const auto &x) { std::cout << x << " "; });
     std::cout << std::endl;
   }
