@@ -8,31 +8,32 @@ template <typename T, typename F> struct Engine {
   Engine(const F &f) : func_(f) {}
   void computers(T &&c) { computers_ = c; }
 
-  template <typename U = T>
-  auto run(
-      unsigned a, unsigned b,
-      typename std::enable_if<boost::hana::Foldable<U>::value>::type * = 0) {
+  template <typename... Args, typename U = T,
+            typename std::enable_if<boost::hana::Foldable<U>::value>::type * =
+                nullptr>
+  auto run(const Args &... args) {
     auto ret = boost::hana::transform(
-        computers_, [this, &a, &b](auto &&x) { return func_(x, a, b); });
+        computers_, [this, &args...](auto &&x) { return func_(x, args...); });
     return ret;
   }
 
-  template <typename U = T>
-  auto run(
-      unsigned a, unsigned b,
-      typename std::enable_if<!boost::hana::Foldable<U>::value>::type * = 0) {
+  template <typename... Args, typename U = T,
+            typename std::enable_if<!boost::hana::Foldable<U>::value>::type * =
+                nullptr>
+  auto run(const Args &... args) {
     std::vector<unsigned> ret;
     ret.reserve(computers_.size());
     std::transform(computers_.begin(), computers_.end(),
                    std::back_inserter(ret),
-                   [this, &a, &b](auto &&x) { return func_(x, a, b); });
+                   [this, &args...](auto &&x) { return func_(x, args...); });
     return ret;
   }
 
-  template <typename U = T>
-  void benchmark(
-      unsigned loops, std::vector<unsigned> a, std::vector<unsigned> b,
-      typename std::enable_if<!boost::hana::Foldable<U>::value>::type * = 0) {
+  template <typename U = T,
+            typename std::enable_if<!boost::hana::Foldable<U>::value>::type * =
+                nullptr>
+  void benchmark(unsigned loops, std::vector<unsigned> a,
+                 std::vector<unsigned> b) {
     unsigned val = 0;
     std::clock_t c_start = std::clock();
     auto t_start = std::chrono::high_resolution_clock::now();
@@ -51,11 +52,11 @@ template <typename T, typename F> struct Engine {
                      .count() << " ms\n";
     std::cout << val << "\n\n";
   }
-
-  template <typename U = T>
-  void benchmark(
-      unsigned loops, std::vector<unsigned> a, std::vector<unsigned> b,
-      typename std::enable_if<boost::hana::Foldable<U>::value>::type * = 0) {
+  template <typename... Args, typename U = T,
+            typename std::enable_if<boost::hana::Foldable<U>::value>::type * =
+                nullptr>
+  void benchmark(unsigned loops, const std::vector<unsigned> &a,
+                 const std::vector<unsigned> &b) {
     unsigned val = 0;
     std::clock_t c_start = std::clock();
     auto t_start = std::chrono::high_resolution_clock::now();
