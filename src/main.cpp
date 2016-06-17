@@ -21,20 +21,13 @@ int main() {
   std::generate(ar.begin(), ar.end(), std::rand);
   std::generate(br.begin(), br.end(), std::rand);
 
-  auto interfaceEnforcer = [](auto &computer, const auto &a, const auto &b,
-                              ...) { return computer.compute(a, b); };
-
   // Using Hana with the unrelated types.
   std::cout << "Hana: ";
   {
-    auto computers = hana::make_tuple(Addition{}, Subtraction{},
-                                      Multiplication{}, AccumulateFirstArg{});
-    auto e = NewEngine(interfaceEnforcer, std::move(computers));
 
     // Show off the ability to use Engine::run() with variable number of args.
     // The accumulator will be different between the 2 runs (4th number) because
     // it is stateful.
-    auto args2 = e.run(ar[1], br[1]);
     boost::hana::for_each(args2, [](const auto &x) { std::cout << x << " "; });
     std::cout << std::endl;
 
@@ -44,4 +37,33 @@ int main() {
   }
 
   return 0;
+}
+
+struct ScaleToParentSize {
+  bool apply(Widget &w, const auto &coefficient, const auto &parents,
+             const auto &bounds) {
+    w.scaleTo(parents.size());
+  }
+};
+struct SetColorToParentColor {
+  bool apply(Widget &w, const auto &coefficient, const auto &parents,
+             const auto &bounds) {
+    w.colorIs(parents.color());
+  }
+};
+
+template <typename Widget, typename... Args>
+void gainFocusCallback(Widget &w, Args &&... args) {
+
+  auto gainFocus =
+      hana::make_tuple(ScaleToParentSize{}, SetColorToParentColor{});
+
+  auto gainFocuserIntf = [](auto &action, auto &widget, const auto &coefficient,
+                            const auto &parents, const auto &bounds, ...) {
+    return action.apply(widget, coeffienct, parents, bounds);
+  };
+
+  auto gainFocusEngine = NewEngine(gainFocuserIntf, gainFocus);
+
+  auto results = gainFocusEngine.run(widget, args...);
 }
