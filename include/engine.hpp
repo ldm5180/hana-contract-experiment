@@ -5,41 +5,43 @@
 #include <boost/hana.hpp>
 #include <utility>
 
-template <typename T> struct Engine {
-  Engine(T &&computers) : computers_(std::move(computers)) {}
+template <typename E, typename T> struct Engine {
+  Engine(E &&enforcer, T &&computers)
+      : enforcer_(enforcer), computers_(std::move(computers)) {}
 
-  template <typename Func, typename... Args, typename U = T,
+  template <typename... Args, typename U = T,
             typename std::enable_if<boost::hana::Foldable<U>::value>::type * =
                 nullptr>
-  auto run(const Func &f, const Args &... args) {
-    auto ret = boost::hana::transform(
-        computers_, [this, &f, &args...](auto &&x) { return f(x, args...); });
+  auto run(const Args &... args) {
+    auto ret = boost::hana::transform(computers_, [this, &args...](auto &&x) {
+      return enforcer_(x, args...);
+    });
     return ret;
   }
 
-  template <typename Func, typename... Args, typename U = T,
+  template <typename... Args, typename U = T,
             typename std::enable_if<!boost::hana::Foldable<U>::value>::type * =
                 nullptr>
-  auto run(const Func &f, const Args &... args) {
+  auto run(const Args &... args) {
     std::vector<unsigned> ret;
     ret.reserve(computers_.size());
-    std::transform(computers_.begin(), computers_.end(),
-                   std::back_inserter(ret),
-                   [this, &f, &args...](auto &&x) { return f(x, args...); });
+    std::transform(
+        computers_.begin(), computers_.end(), std::back_inserter(ret),
+        [this, &args...](auto &&x) { return enforcer_(x, args...); });
     return ret;
   }
 
-  template <typename Func, typename U = T,
+  template <typename U = T,
             typename std::enable_if<!boost::hana::Foldable<U>::value>::type * =
                 nullptr>
-  void benchmark(const Func &f, unsigned loops, const std::vector<unsigned> a,
+  void benchmark(unsigned loops, const std::vector<unsigned> a,
                  const std::vector<unsigned> b) {
     unsigned val = 0;
     std::clock_t c_start = std::clock();
     auto t_start = std::chrono::high_resolution_clock::now();
     for (unsigned i = 0; i < loops; ++i) {
       {
-        auto results = run(f, a[i], b[i]);
+        auto results = run(a[i], b[i]);
         val = std::accumulate(results.begin(), results.end(), val);
       }
     }
@@ -53,17 +55,17 @@ template <typename T> struct Engine {
     std::cout << val << "\n\n";
   }
 
-  template <typename Func, typename... Args, typename U = T,
+  template <typename... Args, typename U = T,
             typename std::enable_if<boost::hana::Foldable<U>::value>::type * =
                 nullptr>
-  void benchmark(const Func &f, unsigned loops, const std::vector<unsigned> &a,
+  void benchmark(unsigned loops, const std::vector<unsigned> &a,
                  const std::vector<unsigned> &b) {
     unsigned val = 0;
     std::clock_t c_start = std::clock();
     auto t_start = std::chrono::high_resolution_clock::now();
     for (unsigned i = 0; i < loops; ++i) {
       {
-        auto results = run(f, a[i], b[i]);
+        auto results = run(a[i], b[i]);
         val = boost::hana::fold_left(
             results, val, [](unsigned state, auto v) { return state + v; });
       }
@@ -79,11 +81,14 @@ template <typename T> struct Engine {
   }
 
 private:
+  E enforcer_;
   T computers_;
 };
 
-template <typename Computers> Engine<Computers> NewEngine(Computers &&c) {
-  return Engine<Computers>(std::forward<Computers>(c));
+template <typename Enforcer, typename Computers>
+Engine<Enforcer, Computers> NewEngine(Enforcer &&e, Computers &&c) {
+  return Engine<Enforcer, Computers>(std::forward<Enforcer>(e),
+                                     std::forward<Computers>(c));
 }
 
 #endif // ENGINE_HPP
