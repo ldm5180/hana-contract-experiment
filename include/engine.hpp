@@ -4,7 +4,8 @@
 #include <algorithm>
 #include <boost/hana.hpp>
 
-template <typename T> struct Engine {
+template <typename T, typename F> struct Engine {
+  Engine(const F &f) : func_(f) {}
   void computers(T &&c) { computers_ = c; }
 
   template <typename U = T>
@@ -12,7 +13,7 @@ template <typename T> struct Engine {
       unsigned a, unsigned b,
       typename std::enable_if<boost::hana::Foldable<U>::value>::type * = 0) {
     auto ret = boost::hana::transform(
-        computers_, [&a, &b](auto &&x) { return x.compute(a, b); });
+        computers_, [this, &a, &b](auto &&x) { return func_(x, a, b); });
     return ret;
   }
 
@@ -24,7 +25,7 @@ template <typename T> struct Engine {
     ret.reserve(computers_.size());
     std::transform(computers_.begin(), computers_.end(),
                    std::back_inserter(ret),
-                   [&a, &b](auto &&x) { return x->compute(a, b); });
+                   [this, &a, &b](auto &&x) { return func_(x, a, b); });
     return ret;
   }
 
@@ -77,6 +78,7 @@ template <typename T> struct Engine {
 
 private:
   T computers_;
+  F func_;
 };
 
 #endif // ENGINE_HPP

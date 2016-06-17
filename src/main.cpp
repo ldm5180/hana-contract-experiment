@@ -21,6 +21,11 @@ int main() {
   std::generate(ar.begin(), ar.end(), std::rand);
   std::generate(br.begin(), br.end(), std::rand);
 
+  auto pcaller =
+      [](auto &x, const auto &a, const auto &b) { return x->compute(a, b); };
+  auto caller =
+      [](auto &x, const auto &a, const auto &b) { return x.compute(a, b); };
+
   // Standard way of doing it. Cannot use MultiplicationComputer because it is
   // not derived from Computer.
   std::cout << "Inheritance: ";
@@ -30,7 +35,7 @@ int main() {
     computers.emplace_back(std::make_shared<SubtractionComputer>());
     computers.emplace_back(std::make_shared<MultiplicationComputer>());
     computers.emplace_back(std::make_shared<AccumulateFirstArgComputer>());
-    Engine<decltype(computers)> e;
+    Engine<decltype(computers), decltype(pcaller)> e(pcaller);
     e.computers(std::move(computers));
     e.benchmark(numloops, ar, br);
   }
@@ -43,7 +48,7 @@ int main() {
                                       AccumulateFirstArgComputer{});
     BOOST_HANA_CONSTANT_CHECK(hana::length(computers) == hana::size_c<4>);
 
-    Engine<decltype(computers)> e;
+    Engine<decltype(computers), decltype(caller)> e(caller);
     e.computers(std::move(computers));
     e.benchmark(numloops, ar, br);
   }
@@ -55,7 +60,7 @@ int main() {
                                       Multiplication{}, AccumulateFirstArg{});
     BOOST_HANA_CONSTANT_CHECK(hana::length(computers) == hana::size_c<4>);
 
-    Engine<decltype(computers)> e;
+    Engine<decltype(computers), decltype(caller)> e(caller);
     e.computers(std::move(computers));
     e.benchmark(numloops, ar, br);
   }
